@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>물타기 계산기</title>
+    
+    <link rel="apple-touch-icon" href="https://www.flaticon.com/kr/free-icon-font/calculator-money_13794296?term=%EA%B3%84%EC%82%B0%EA%B8%B0&related_id=13794296"> 
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <style>
+        body { font-family: 'Pretendard', -apple-system, sans-serif; background: #f8f9fa; padding: 20px; color: #333; line-height: 1.5; }
+        .card { max-width: 500px; margin: 0 auto; background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+        h3 { text-align: center; margin-bottom: 25px; color: #222; border-left: 5px solid #444; padding-left: 10px; }
+        
+        .row { display: flex; gap: 10px; margin-bottom: 15px; align-items: flex-end; }
+        .input-box { flex: 1; }
+        .info-box { width: 100px; text-align: right; padding-bottom: 10px; }
+        
+        label { font-size: 11px; font-weight: bold; color: #888; display: block; margin-bottom: 5px; }
+        input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        input:focus { border-color: #007bff; outline: none; }
+
+        .highlight-text { font-weight: bold; font-size: 14px; }
+        .minus { color: #0055ff; } /* 하락은 파란색 */
+        .plus { color: #ff3b30; } /* 상승은 빨간색 */
+
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+        button { flex: 2; padding: 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; }
+        .btn-calc { background: #333; color: white; }
+        .btn-reset { flex: 1; background: #eee; color: #666; }
+
+        .result-area { background: #f1f3f5; padding: 20px; border-radius: 10px; margin-top: 20px; border: 1px solid #dee2e6; }
+        .result-title { background: #495057; color: white; text-align: center; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-weight: bold; font-size: 14px; }
+        .result-line { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 15px; border-bottom: 1px dashed #ced4da; padding-bottom: 5px; }
+        .result-line:last-child { border-bottom: none; }
+        .val { font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h3>물타기 계산기</h3>
+        
+        <div class="row">
+            <div class="input-box">
+                <label>주당 현재가</label>
+                <input type="number" id="currPrice" placeholder="현재가" oninput="calculate()">
+            </div>
+            <div class="info-box">
+                <label>현재 수익률</label>
+                <span id="currRate" class="highlight-text">-</span>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="input-box">
+                <label>보유 단가</label>
+                <input type="number" id="myPrice" placeholder="단가" oninput="calculate()">
+            </div>
+            <div class="input-box">
+                <label>보유 수량</label>
+                <input type="number" id="myQty" placeholder="수량" oninput="calculate()">
+            </div>
+            <div class="info-box">
+                <label>매수금액</label>
+                <span id="myTotal" class="highlight-text">0</span>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="input-box">
+                <label>추가매수 단가</label>
+                <input type="number" id="addPrice" placeholder="단가" oninput="calculate()">
+            </div>
+            <div class="input-box">
+                <label>추가매수 수량</label>
+                <input type="number" id="addQty" placeholder="수량" oninput="calculate()">
+            </div>
+            <div class="info-box">
+                <label>추가매수금액</label>
+                <span id="addTotal" class="highlight-text">0</span>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn-calc" onclick="calculate()">계산하기</button>
+            <button class="btn-reset" onclick="resetAll()">초기화</button>
+        </div>
+        
+        <div class="result-area" id="result" style="display:none;">
+            <div class="result-title">최종 산출 결과 (물타기 후)</div>
+            <div class="result-line"><span>최종 평단가</span> <span class="val" id="resAvgPrice">0</span></div>
+            <div class="result-line"><span>최종 수익률</span> <span class="val" id="resRate">0%</span></div>
+            <div class="result-line"><span>최종 수량</span> <span class="val" id="resTotalQty">0</span></div>
+            <div class="result-line"><span>총 매수금액</span> <span class="val" id="resTotalMoney">0</span></div>
+        </div>
+    </div>
+
+    <script>
+        function calculate() {
+            const currPrice = parseFloat(document.getElementById('currPrice').value) || 0;
+            const myPrice = parseFloat(document.getElementById('myPrice').value) || 0;
+            const myQty = parseFloat(document.getElementById('myQty').value) || 0;
+            const addPrice = parseFloat(document.getElementById('addPrice').value) || 0;
+            const addQty = parseFloat(document.getElementById('addQty').value) || 0;
+
+            const currRateEl = document.getElementById('currRate');
+            if (myPrice > 0 && currPrice > 0) {
+                const pureProfitRate = ((currPrice / myPrice) - 1) * 100;
+                currRateEl.innerText = pureProfitRate.toFixed(2) + "%";
+                currRateEl.className = 'highlight-text ' + (pureProfitRate >= 0 ? 'plus' : 'minus');
+            } else {
+                currRateEl.innerText = "-";
+                currRateEl.className = 'highlight-text';
+            }
+
+            const myTotal = myPrice * myQty;
+            const addTotal = addPrice * addQty;
+            document.getElementById('myTotal').innerText = myTotal.toLocaleString();
+            document.getElementById('addTotal').innerText = addTotal.toLocaleString();
+
+            const totalQty = myQty + addQty;
+            const totalMoney = myTotal + addTotal;
+            const avgPrice = totalQty > 0 ? totalMoney / totalQty : 0;
+            const finalProfitRate = avgPrice > 0 ? ((currPrice / avgPrice) - 1) * 100 : 0;
+
+            if(totalQty > 0) {
+                document.getElementById('resAvgPrice').innerText = avgPrice.toLocaleString(undefined, {maximumFractionDigits: 2});
+                const resRateEl = document.getElementById('resRate');
+                resRateEl.innerText = finalProfitRate.toFixed(2) + "%";
+                resRateEl.className = 'val ' + (finalProfitRate >= 0 ? 'plus' : 'minus');
+                document.getElementById('resTotalQty').innerText = totalQty.toLocaleString();
+                document.getElementById('resTotalMoney').innerText = totalMoney.toLocaleString();
+                document.getElementById('result').style.display = 'block';
+            } else {
+                document.getElementById('result').style.display = 'none';
+            }
+        }
+
+        function resetAll() {
+            document.querySelectorAll('input').forEach(input => input.value = '');
+            document.getElementById('myTotal').innerText = '0';
+            document.getElementById('addTotal').innerText = '0';
+            document.getElementById('currRate').innerText = '-';
+            document.getElementById('result').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
